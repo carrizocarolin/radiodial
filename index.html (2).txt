@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radio Dial (5 estaciones)</title>
+  <style>
+    :root{
+      /* Tema claro */
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --text: #111111;
+      --muted: #666666;
+
+      /* Color dinámico por estación */
+      --dial-color: #ff3b3b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);              /* FONDO BLANCO */
+      color: var(--text);
+      padding: 18px;
+    }
+
+    .app{
+      width: min(980px, 100%);
+      background: var(--panel);          /* BLANCO */
+      border: 1px solid #ddd;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    }
+
+    header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      padding: 6px 6px 14px 6px;
+    }
+
+    h1{ font-size: 18px; margin:0; }
+
+    .sub{
+      font-size: 13px;
+      color: var(--muted);
+      margin-top:4px;
+    }
+
+    .grid{ display:grid; grid-template-columns: 1fr; gap: 16px; }
+
+    .dialCard{
+      background: #f7f7f7;
+      border: 1px solid #e0e0e0;
+      border-radius: 18px;
+      padding: 16px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 14px;
+    }
+
+    .dialWrap{
+      width: min(360px, 84vw);
+      aspect-ratio: 1 / 1;
+      position: relative;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .dial{
+      position:absolute; inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.75), transparent 40%),
+        radial-gradient(circle at 60% 70%, rgba(0,0,0,.12), transparent 55%),
+        linear-gradient(180deg, var(--dial-color) 0%, #e6e6e6 70%, #d6d6d6 100%);
+      border: 10px solid var(--dial-color);
+      box-shadow: inset 0 10px 30px rgba(0,0,0,.18), 0 20px 40px rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transform: rotate(0deg);
+      will-change: transform;
+      transition: border-color .25s ease, background .25s ease;
+    }
+
+    .dial::before{
+      content:"";
+      width: 62%;
+      height: 62%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.65), transparent 45%),
+        linear-gradient(180deg, #f7f7f7 0%, #e9e9e9 100%);
+      border: 1px solid rgba(0,0,0,.12);
+      box-shadow: inset 0 10px 25px rgba(0,0,0,.12);
+    }
+
+    .pointer{
+      position:absolute;
+      left: 50%; top: 50%;
+      width: 4px; height: 44%;
+      transform: translate(-50%, -100%);
+      transform-origin: bottom center;
+      background: linear-gradient(180deg, var(--dial-color), rgba(0,0,0,0));
+      border-radius: 99px;
+      filter: drop-shadow(0 0 10px rgba(0,0,0,.18));
+      pointer-events:none;
+      transition: background .25s ease;
+    }
+
+    .centerDot{
+      position:absolute; left:50%; top:50%;
+      width: 18px; height: 18px; border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(0,0,0,.12), rgba(0,0,0,.04));
+      border: 1px solid rgba(0,0,0,.15);
+      box-shadow: 0 0 0 6px rgba(0,0,0,.06);
+      pointer-events:none;
+    }
+
+    .ticks{ position:absolute; inset: -6px; border-radius: 50%; pointer-events:none; }
+
+    .tick{
+      position:absolute;
+      left: 50%; top: 50%;
+      width: 4px; height: 14px;
+      transform-origin: 50% calc(100% + 140px);
+      background: rgba(0,0,0,.18);
+      border-radius: 99px;
+    }
+
+    .tick.main{
+      height: 22px;
+      background: var(--dial-color);
+      transition: background .25s ease;
+    }
+
+    .status{
+      width: min(360px, 84vw);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      background: #ffffff;
+      border: 1px solid #e3e3e3;
+      border-radius: 14px;
+    }
+
+    .status strong{ font-size: 14px; }
+
+    .badge{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,.12);
+      background: rgba(0,0,0,.04);
+      color: #111;
+      white-space: nowrap;
+    }
+
+    .gate{
+      width: min(360px, 84vw);
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid #e3e3e3;
+      background: #ffffff;
+      display:none;
+      text-align:center;
+    }
+
+    .gate button{
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: none;
+      background: #ff8c00;      /* BOTÓN NARANJA */
+      color: #ffffff;
+      cursor:pointer;
+      font-weight: 700;
+    }
+    .gate button:hover{ background:#ff7a00; }
+
+    .small{ font-size: 12px; color: var(--muted); line-height: 1.35; }
+    code{ background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Dial de Radio (5 estaciones)</h1>
+        <div class="sub">Arrastrá la perilla. Cambia de estación y el audio cambia automáticamente.</div>
+      </div>
+      <div class="badge" id="audioState">Iniciando…</div>
+    </header>
+
+    <div class="grid">
+      <section class="dialCard">
+        <div class="dialWrap" id="dialArea" aria-label="Dial de radio">
+          <div class="ticks" id="ticks"></div>
+          <div class="dial" id="dial">
+            <div class="pointer"></div>
+            <div class="centerDot"></div>
+          </div>
+        </div>
+
+        <div class="status">
+          <div>
+            <div style="font-size:12px;color:var(--muted)">Estación</div>
+            <strong id="stationLabel">1 / 5</strong>
+          </div>
+          <div class="badge" id="trackLabel">audio/1.mp3</div>
+        </div>
+
+        <div class="gate" id="gate">
+          <div style="font-weight:700">Activar audio</div>
+          <div class="small">Tu navegador bloqueó el autoplay con sonido. Tocá el botón una vez y luego el dial queda en modo autoplay.</div>
+          <button id="startBtn">Tocar para iniciar</button>
+        </div>
+
+        <div class="small">
+          Tip: si querés que los 5 archivos tengan otros nombres, editá la lista <code>TRACKS</code> en el código.
+        </div>
+      </section>
+    </div>
+
+    <audio id="player" preload="auto" playsinline></audio>
+  </div>
+
+<script>
+(() => {
+  // === CONFIG: tus 5 audios públicos ===
+  const TRACKS = [
+    "audio/1.mp3",
+    "audio/2.mp3",
+    "audio/3.mp3",
+    "audio/4.mp3",
+    "audio/5.mp3"
+  ];
+
+  // === COLORES por estación (1..5) ===
+  const STATION_COLORS = [
+    "#ff3b3b", // 1 rojo
+    "#ff8c00", // 2 naranja
+    "#ffd400", // 3 amarillo
+    "#2ecc71", // 4 verde
+    "#3498db"  // 5 azul
+  ];
+
+  const stops = TRACKS.length;
+
+  // Rango de rotación del dial (tipo radio)
+  const minDeg = -140;
+  const maxDeg = 140;
+
+  // Estado
+  let currentStop = 0;
+  let currentDeg = degForStop(0);
+  let dragging = false;
+
+  // Elements
+  const dialArea = document.getElementById('dialArea');
+  const dial = document.getElementById('dial');
+  const stationLabel = document.getElementById('stationLabel');
+  const audioState = document.getElementById('audioState');
+  const trackLabel = document.getElementById('trackLabel');
+  const player = document.getElementById('player');
+  const ticks = document.getElementById('ticks');
+  const gate = document.getElementById('gate');
+  const startBtn = document.getElementById('startBtn');
+
+  // Ticks
+  for (let i = 0; i < stops; i++) {
+    const t = document.createElement('div');
+    t.className = 'tick ' + (i === 0 || i === stops-1 ? 'main' : '');
+    t.style.transform = `translate(-50%, -50%) rotate(${degForStop(i)}deg)`;
+    ticks.appendChild(t);
+  }
+
+  function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
+  function degForStop(i){
+    const t = i / (stops - 1);
+    return minDeg + t * (maxDeg - minDeg);
+  }
+  function stopForDeg(deg){
+    const t = (deg - minDeg) / (maxDeg - minDeg);
+    const idx = Math.round(t * (stops - 1));
+    return clamp(idx, 0, stops - 1);
+  }
+  function setDial(deg){
+    currentDeg = clamp(deg, minDeg, maxDeg);
+    dial.style.transform = `rotate(${currentDeg}deg)`;
+  }
+  function updateUI(){
+    stationLabel.textContent = `${currentStop + 1} / ${stops}`;
+    trackLabel.textContent = TRACKS[currentStop];
+  }
+  function setBadge(t){ audioState.textContent = t; }
+
+  function applyStationColor(i){
+    document.documentElement.style.setProperty("--dial-color", STATION_COLORS[i] || "#ff3b3b");
+  }
+
+  async function playCurrent(){
+    // autoplay "siempre": lo intentamos cada vez que cambiamos
+    try {
+      await player.play();
+      gate.style.display = "none";
+      setBadge("Reproduciendo");
+    } catch (e) {
+      setBadge("Autoplay bloqueado");
+      gate.style.display = "block";
+    }
+  }
+
+  function loadStop(i){
+    currentStop = i;
+    setDial(degForStop(i));
+    updateUI();
+
+    // Color del dial según estación
+    applyStationColor(i);
+
+    // Cambiar audio y reproducir
+    player.src = TRACKS[i];
+    player.load();
+    setBadge("Cargando…");
+    playCurrent();
+  }
+
+  // Geometría del gesto (ángulo desde el centro)
+  function getPoint(ev){
+    if (ev.touches && ev.touches[0]) return { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+    if (ev.changedTouches && ev.changedTouches[0]) return { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY };
+    return { x: ev.clientX, y: ev.clientY };
+  }
+  function getAngleDegFromEvent(ev){
+    const rect = dialArea.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const p = getPoint(ev);
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    let ang = Math.atan2(dy, dx) * 180 / Math.PI; // 0 derecha
+    ang = ang - 90; // 0 arriba
+    while (ang > 180) ang -= 360;
+    while (ang < -180) ang += 360;
+    return ang;
+  }
+  function angleToDialDeg(pointerAngle){
+    return clamp(pointerAngle, minDeg, maxDeg);
+  }
+
+  const start = (ev) => { dragging = true; ev.preventDefault(); dialArea.setPointerCapture?.(ev.pointerId); move(ev); };
+  const move = (ev) => {
+    if (!dragging) return;
+    ev.preventDefault();
+    const dialDeg = angleToDialDeg(getAngleDegFromEvent(ev));
+    setDial(dialDeg);
+    const s = stopForDeg(dialDeg);
+    stationLabel.textContent = `${s + 1} / ${stops}`; // preview
+    trackLabel.textContent = TRACKS[s];
+  };
+  const end = (ev) => {
+    if (!dragging) return;
+    dragging = false;
+    ev.preventDefault();
+    const dialDeg = angleToDialDeg(getAngleDegFromEvent(ev));
+    const s = stopForDeg(dialDeg);
+    loadStop(s); // snap + autoplay
+  };
+
+  dialArea.addEventListener('pointerdown', start);
+  dialArea.addEventListener('pointermove', move);
+  dialArea.addEventListener('pointerup', end);
+  dialArea.addEventListener('pointercancel', end);
+
+  // Gate button: desbloquea audio por interacción
+  startBtn.addEventListener('click', async () => {
+    try {
+      await player.play();
+      gate.style.display = "none";
+      setBadge("Reproduciendo");
+    } catch(e){
+      setBadge("No se pudo reproducir");
+    }
+  });
+
+  player.addEventListener('play', () => setBadge("Reproduciendo"));
+  player.addEventListener('pause', () => { if (!player.ended) setBadge("Pausado"); });
+  player.addEventListener('ended', () => setBadge("Finalizado"));
+
+  // Inicio
+  applyStationColor(0);
+  updateUI();
+  loadStop(0);
+})();
+</script>
+</body>
+</html>
